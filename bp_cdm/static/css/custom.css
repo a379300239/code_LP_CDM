@@ -1,0 +1,19 @@
+.text-red {
+    color: red;
+  }
+
+.topDis-m {
+    margin-top: 30px;
+}
+
+.topDis-s {
+    margin-top: 10px;
+}
+
+.ztCenter{
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    flex-direction: column ;
+    align-items: center;
+}

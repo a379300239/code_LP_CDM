@@ -1,0 +1,1 @@
+condaVenv\Scripts\activate

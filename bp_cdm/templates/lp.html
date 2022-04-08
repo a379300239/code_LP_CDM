@@ -56,14 +56,6 @@
                             </label>
                             <textarea v-model="data.A" class="form-control" rows="3"></textarea>
                         </div>
-
-                        <!-- 输入x取值范围 -->
-                        <div class="form-group topDis-s">
-                            <label >
-                                x取值范围
-                            </label>
-                            <textarea v-model="data.xRange" class="form-control" rows="3"></textarea>
-                        </div>
     
                         <!-- 输入目标函数 -->
                         <div class="form-group topDis-s">
@@ -71,6 +63,15 @@
                                 右端向量（B）
                             </label>
                             <input v-model="data.B" type="text" class="form-control" />
+                        </div>
+
+                        
+                        <!-- 输入x取值范围 -->
+                        <div class="form-group topDis-s">
+                            <label >
+                                x取值范围
+                            </label>
+                            <textarea v-model="data.xRange" class="form-control" rows="3"></textarea>
                         </div>
     
                         <!-- 提示 -->
@@ -81,107 +82,69 @@
                     </form>
 
                     <div style="display: flex;justify-content: space-around;" class="col-md-8">
-                        <button class="btn btn-primary col-md-5" @click="submitLp">
+                        <button class="btn btn-primary col-md-3" @click="submitLp">
                             提交
                         </button>
 
-                        <button class="btn btn-success	col-md-5"  @click="showExample">
+                        <button class="btn btn-danger	col-md-3"  @click="clearData">
+                            清空
+                        </button>
+                   
+                        <button class="btn btn-success	col-md-3"  @click="showExample">
                             样例数据
                         </button>
                     </div>
                 </div>
                 
-                <h3 class="topDis-m">单纯性表及结果</h3>
-                <table class="table topDis-m">
-                    <thead>
-                        <tr>
-                            <th>
-                                #
-                            </th>
-                            <th>
-                                Product
-                            </th>
-                            <th>
-                                Payment Taken
-                            </th>
-                            <th>
-                                Status
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>
-                                1
-                            </td>
-                            <td>
-                                TB - Monthly
-                            </td>
-                            <td>
-                                01/04/2012
-                            </td>
-                            <td>
-                                Default
-                            </td>
-                        </tr>
-                        <tr class="table-active">
-                            <td>
-                                1
-                            </td>
-                            <td>
-                                TB - Monthly
-                            </td>
-                            <td>
-                                01/04/2012
-                            </td>
-                            <td>
-                                Approved
-                            </td>
-                        </tr>
-                        <tr class="table-success">
-                            <td>
-                                2
-                            </td>
-                            <td>
-                                TB - Monthly
-                            </td>
-                            <td>
-                                02/04/2012
-                            </td>
-                            <td>
-                                Declined
-                            </td>
-                        </tr>
-                        <tr class="table-warning">
-                            <td>
-                                3
-                            </td>
-                            <td>
-                                TB - Monthly
-                            </td>
-                            <td>
-                                03/04/2012
-                            </td>
-                            <td>
-                                Pending
-                            </td>
-                        </tr>
-                        <tr class="table-danger">
-                            <td>
-                                4
-                            </td>
-                            <td>
-                                TB - Monthly
-                            </td>
-                            <td>
-                                04/04/2012
-                            </td>
-                            <td>
-                                Call in to confirm
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                <!-- 结果展示 -->
+                <div id="ans_show" >
+                    <!-- 未计算，无任何显示 -->
+
+                    <!-- 计算中 -->
+                    <div v-if="cmpStatue == 1" class="text-center topDis-m text-red">
+                        <h4>计算中...</h4>
+                    </div>
+
+                    <!-- 计算完成 -->
+                    <div class="topDis-m" v-if="cmpStatue == 2">
+                        <h3 class="topDis-m">单纯性表及结果</h3>
+                        
+                        <!-- 单纯形表 -->
+                        <div v-for="(tb,index) in ans">
+    
+                            <h5 class="topDis-s">第${index+1}次</h5>
+    
+                            <table class="table table-success"   @click="getIndex(index)">
+                                <tbody>
+                                    <tr v-for="row in tb">
+                                        <td v-for='col in row' >
+                                            ${col}
+                                        </td>
+                                        
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+    
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <td>X*</td>
+                                    <td>minZ</td>
+                                </tr>
+                            </thead>
+     
+                            <tbody>
+                                <tr>
+                                    <td>${zyj.minX}</td>
+                                    <td>${zyj.minZ}</td>
+                                </tr>                            
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+
             </div>
         </div>
         <div class="row">
@@ -197,7 +160,7 @@
     <script src="/static/bootstrap-5.1.3-dist/js/bootstrap.min.js"></script>
 
     <script>
-        new Vue({
+        inputForm = new Vue({
             el: '#form_input',
             delimiters: ['${', '}'],
             data: {
@@ -208,22 +171,25 @@
                     B:'',
                 },
                 example:{
-                    C:'-1 -1',
+                    C:'min -1 -1',
                     A:'1 2 1 0 =\n3 5 0 1 =',
                     xRange:'[0,e)\n[0,e)\n[0,e)\n[0,e)\n',
                     B:'4 10'
-                }
+                },
             },
             watch:{
             },
             methods:{
                 submitLp:function(){
+                    ansShow.cmpStatue = 1;
 
                     // 发送数据
                     this.$http.post('/submitLp',this.data,{emulateJSON:true}).then(function(res){
-                        console.log(res.body)
+                        ans = JSON.parse(res.bodyText)
+                        ansShow.ans = ans.data;
+                        ansShow.zyj = ans.zyj;
+                        ansShow.cmpStatue = 2;
                     },function(res){
-                        console.log(res.status);
                     });
 
                 },
@@ -232,9 +198,31 @@
                     this.data.A=this.example.A;
                     this.data.xRange=this.example.xRange;
                     this.data.B=this.example.B;
+                },
+                clearData:function(){
+                    this.data.C=''
+                    this.data.A='';
+                    this.data.xRange='';
+                    this.data.B='';
                 }
+                
             }
-        })       
+        });
+        
+        ansShow = new Vue({
+            el: '#ans_show',
+            delimiters: ['${', '}'],
+            data:{
+                ans:'',
+                zyj:'',
+                // 0 未计算 1 计算中 2计算完成
+                cmpStatue:0
+            },
+            watch:{
+            },
+            methods:{
+            }
+        });
     </script>
 
     

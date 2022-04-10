@@ -20,144 +20,179 @@
       </style>
  
    </head>
+
    <body>
+
+    <div class="col-md-12">
+        <div class="tabbable" id="tabs-528553">
+            <ul class="nav nav-tabs">
+                <li class="nav-item">
+                    <a class="nav-link active show" href="/lp" data-toggle="tab">线性规划问题</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/dcm" data-toggle="tab">共轭梯度法</a>
+                </li>
+            </ul>
+        </div>
+
     <div class="container-fluid">
-        <div class="row m-auto">
-            <div class="col-md-12">
-                <div class="tabbable" id="tabs-528553">
-                    <ul class="nav nav-tabs">
-                        <li class="nav-item">
-                            <a class="nav-link active show" href="/lp" data-toggle="tab">线性规划问题</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/dcm" data-toggle="tab">共轭梯度法</a>
-                        </li>
-                    </ul>
-                </div>
 
-                <h3>输入</h3>
-                
-                <!-- 线性规划问题输入 -->
-                <div class="ztCenter topDis-m" id="form_input">
-                    <form class="col-md-8">
 
-                        <!-- 输入目标函数 -->
-                        <div class="form-group topDis-s" >
-                            <label >
-                                目标函数向量（C）
-                            </label>
-                            <input  v-model="data.C" type="text" class="form-control"/>
-                        </div>
-    
-                        <!-- 输入约束函数矩阵 -->
-                        <div class="form-group topDis-s">
-                            <label >
-                                约束函数矩阵（A）
-                            </label>
-                            <textarea v-model="data.A" class="form-control" rows="3"></textarea>
-                        </div>
-    
-                        <!-- 输入目标函数 -->
-                        <div class="form-group topDis-s">
-                            <label >
-                                右端向量（B）
-                            </label>
-                            <input v-model="data.B" type="text" class="form-control" />
-                        </div>
+        <div class="row">
+            <div class="col-md-12" id="form_input">
+                <div class="row">
+                    <!-- 线性规划问题输入 -->
+                    <div class="col-md-6">
+                        <h3 class="ztCenter">输入</h3>
+                        <form class="col-md-12">
 
+                            <!-- 输入目标函数 -->
+                            <div class="form-group topDis-s" >
+                                <label >
+                                    目标函数向量（C）
+                                </label>
+                                <input  v-model="data.C" type="text" class="form-control"/>
+                            </div>
+        
+                            <!-- 输入约束函数矩阵 -->
+                            <div class="form-group topDis-s">
+                                <label >
+                                    约束函数矩阵（A）
+                                </label>
+                                <textarea v-model="data.A" class="form-control" rows="3"></textarea>
+                            </div>
+        
+                            <!-- 输入目标函数 -->
+                            <div class="form-group topDis-s">
+                                <label >
+                                    右端向量（B）
+                                </label>
+                                <input v-model="data.B" type="text" class="form-control" />
+                            </div>
+
+                            
+                            <!-- 输入x取值范围 -->
+                            <div class="form-group topDis-s">
+                                <label >
+                                    x取值范围
+                                </label>
+                                <textarea v-model="data.xRange" class="form-control" rows="3"></textarea>
+                            </div>
+        
+                            <!-- 提示 -->
+                            <p class="text-red topDis-s">
+                                ps:请以空格作为分隔符
+                            </p> 
+        
+                        </form>
                         
-                        <!-- 输入x取值范围 -->
-                        <div class="form-group topDis-s">
-                            <label >
-                                x取值范围
-                            </label>
-                            <textarea v-model="data.xRange" class="form-control" rows="3"></textarea>
-                        </div>
-    
-                        <!-- 提示 -->
-                        <p class="text-red topDis-s">
-                            ps:请以空格作为分隔符
-                        </p> 
-    
-                    </form>
+                        <!-- 按钮域 -->
+                        <div style="display: flex;justify-content: space-around;" class="col-md-12">
+                            <button class="btn btn-primary col-md-2" @click="submitLp">
+                                提交
+                            </button>
 
-                    <div style="display: flex;justify-content: space-around;" class="col-md-8">
-                        <button class="btn btn-primary col-md-2" @click="submitLp">
-                            提交
-                        </button>
+                            <button class="btn btn-danger	col-md-2"  @click="clearData">
+                                清空
+                            </button>
+                    
+                            <button class="btn btn-success	col-md-2"  @click="showExample">
+                                样例数据 1
+                            </button>
 
-                        <button class="btn btn-danger	col-md-2"  @click="clearData">
-                            清空
-                        </button>
-                   
-                        <button class="btn btn-success	col-md-2"  @click="showExample">
-                            样例数据
-                        </button>
-
-                        <button class="btn btn-success	col-md-2"  @click="showExample2">
-                            样例数据 2
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- 结果展示 -->
-                <div id="ans_show" >
-                    <!-- 未计算，无任何显示 -->
-
-                    <!-- 计算中 -->
-                    <div v-if="cmpStatue == 1" class="text-center topDis-m text-red">
-                        <h4>计算中...</h4>
-                    </div>
-
-                    <!-- 计算完成 -->
-                    <div class="topDis-m" v-if="cmpStatue == 2">
-                        <h3 class="topDis-m">单纯性表及结果</h3>
-                        
-                        <!-- 单纯形表 -->
-                        <div v-for="(tb,index) in ans">
-    
-                            <h5 class="topDis-s">第${index+1}次</h5>
-    
-                            <table class="table table-success"   @click="getIndex(index)">
-                                <tbody>
-                                    <tr v-for="row in tb['st']">
-                                        <td v-for='col in row' >
-                                            ${col}
-                                        </td>
-                                        
-                                    </tr>
-                                </tbody>
-                            </table>
-
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <td>X*</td>
-                                        <td>minZ</td>
-                                        <td>换入变量</td>
-                                        <td>换出变量</td>
-                                    </tr>
-                                </thead>
-         
-                                <tbody>
-                                    <tr>
-                                        <td>${tb['value']}</td>
-                                        <td>${tb['solution']}</td>
-                                        <td>${tb['inAndoutX'][0]}</td>
-                                        <td>${tb['inAndoutX'][1]}</td>
-                                    </tr>                            
-                                </tbody>
-                            </table>
+                            <button class="btn btn-success	col-md-2"  @click="showExample2">
+                                样例数据 2
+                            </button>
                         </div>
                     </div>
 
-                </div>
+                    <div class="col-md-6 greyBg">
+                        <h3 class="ztCenter">标准化</h3>
+                        <form class="col-md-12">
 
+                            <!-- 目标函数 -->
+                            <div class="form-group topDis-s" >
+                                <label >
+                                    目标函数向量（C）
+                                </label>
+                                <input  v-model="stdData.F" type="text" class="form-control"/>
+                            </div>
+        
+                            <!-- 约束函数矩阵 -->
+                            <div class="form-group topDis-s">
+                                <label >
+                                    约束函数矩阵（A）
+                                </label>
+                                <textarea v-model="stdData.A" class="form-control" rows="4"></textarea>
+                            </div>
+
+                            
+                            <!-- 输入x取值范围 -->
+                            <div class="form-group topDis-s">
+                                <label >
+                                    x取值范围
+                                </label>
+                                <textarea v-model="stdData.xRange" class="form-control" rows="4"></textarea>
+                            </div>
+        
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="row">
-            <div class="col-md-12">
+    </div>
+
+        <!-- 结果展示 -->
+        <div id="ans_show"  class="container-fluid">
+            <!-- 未计算，无任何显示 -->
+
+            <!-- 计算中 -->
+            <div v-if="cmpStatue == 1" class="text-center topDis-m text-red">
+                <h4>计算中...</h4>
             </div>
+
+            <!-- 计算完成 -->
+            <div class="topDis-m" v-if="cmpStatue == 2">
+                <h3 class="topDis-m">单纯性表及结果</h3>
+                
+                <!-- 单纯形表 -->
+                <div v-for="(tb,index) in ans">
+
+                    <h5 class="topDis-s">第${index+1}次</h5>
+
+                    <table class="table table-success"   @click="getIndex(index)">
+                        <tbody>
+                            <tr v-for="row in tb['st']">
+                                <td v-for='col in row' >
+                                    ${col}
+                                </td>
+                                
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <td>X*</td>
+                                <td>minZ</td>
+                                <td>换入变量</td>
+                                <td>换出变量</td>
+                            </tr>
+                        </thead>
+    
+                        <tbody>
+                            <tr>
+                                <td>${tb['value']}</td>
+                                <td>${tb['solution']}</td>
+                                <td>${tb['inAndoutX'][0]}</td>
+                                <td>${tb['inAndoutX'][1]}</td>
+                            </tr>                            
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -190,6 +225,7 @@
                     xRange:'[0,e)\n[0,e)\n[0,e)\n[0,e)',
                     B:'2 1 2'
                 },
+                stdData:''
             },
             watch:{
             },
@@ -197,13 +233,20 @@
                 submitLp:function(){
                     ansShow.cmpStatue = 1;
 
-                    // 发送数据
+                    // 计算数据
                     this.$http.post('/submitLp',this.data,{emulateJSON:true}).then(function(res){
 
-                        console.log(res.bodyText);
-                        ans = JSON.parse(res.bodyText)
+                        ans = JSON.parse(res.bodyText);
+
+                        // 标准化结果
+                        this.stdData = ans.stdData;
+
+                        // 回归结果
                         ansShow.ans = ans.data;
+
+                        // 改变状态
                         ansShow.cmpStatue = 2;
+                        
                     },function(res){
                     });
 

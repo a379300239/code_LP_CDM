@@ -1,3 +1,4 @@
+from math import fabs
 import numpy as np
 import time as t
 import json
@@ -57,11 +58,10 @@ def formatData(data):
 
 # 标准化
 def standard(data):
-    print('原数据：')
 
     # 检查是哪一类
     erroTypeList = checkErroType(data)
-    print('错误类型有：'+str(erroTypeList))
+    # print('错误类型有：'+str(erroTypeList))
 
     # 处理决策变量范围不对
     if '3' in erroTypeList:
@@ -260,11 +260,18 @@ def getAns(data):
     baseX = []
 
     while 1:
-        # 确定基变量
+        # 确定基变量,是否是第一次
         if baseX == []:
-            baseX = haveUnitArray(data)   # 寻找单位阵
-        else:
-            pass
+            pd = haveUnitArray(data)
+            # 存在基解，复制给baseX
+            if  pd[0] == True:
+                baseX = pd[1]
+            # 不存在基解，使用大M法构建
+            else:
+                for i in pd[1]:
+                    data = addX(data,i,1,maxNum)
+                continue
+
         
         # 计算单纯形表，返回表及换入换出变量
         result = getSimplexTable(data,baseX)
@@ -288,7 +295,7 @@ def getAns(data):
             item = {'st':result['st'],'solution':solution,'value':value,'inAndoutX':inAndoutX}
             ans.append(item)
         
-            # 交换变量，并单位化
+            # 换出换入变量，并单位化
             baseX[baseX.index(inAndoutX[1])] = inAndoutX[0] 
             data = vectorUnit(data,inAndoutX[2],inAndoutX[0])
 
@@ -411,7 +418,17 @@ def haveUnitArray(data):
         if onepos1 != None:
             ans.append(allOneArray[:,0][onepos1])
 
-    return ans
+    # 不存在基解,使用大M法
+    if len(ans)!=cNum:
+        lackAns = []
+        j = np.array(data['A'][:,ans])
+        for (index,i) in enumerate(j):
+            if np.sum(i!=0) == 0:
+                lackAns.append(index)
+
+        return [False,lackAns]
+    else:
+        return [True,ans]
 
 # 向量单位化
 def vectorUnit(data,row,col):
@@ -477,13 +494,30 @@ def resBeauty_st(data):
     return data
 
 def resBeauty_inAndoutX(data):
-    print(data)
+    # print(data)
     for (indexj,j) in enumerate(data):
         if isinstance(j,int) or isinstance(j,np.int64):
             data[indexj] = str(j+1)
         else:
             data[indexj] = str(j)
     return data
+
+def getStd(data):
+
+    data = formatData(data)
+
+    data = standard(data)
+
+    F = '{}={}'.format(data['questionType'],data['C'])
+
+    A = ''
+
+    for (index,i) in enumerate(data['A']):
+        A+='{}{}{}\n'.format(i,data['symbolMatrix'][index],data['B'][index])
+
+    xRange = '{}'.format(data['xRange'])
+
+    return {'F':F,'A':A,'xRange':xRange}
 
 def startLp(data):
 

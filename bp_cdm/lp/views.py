@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.http import HttpResponse,JsonResponse
 from django.shortcuts import render
 import time
-from lpSolve.lpSolve import startLp
+from lpSolve.lpSolve import startLp,getStd
 
 def lp(request):
     return render(request,'lp.html')
@@ -18,8 +18,11 @@ def submitLp(request):
     # 调用方法，得到最终结果
     ans = startLp(data)
 
+    stdData = getStd(data)
+
     ansj={
-        'data':ans
+        'data':ans,
+        'stdData':stdData,
     }
 
     return JsonResponse(ansj)

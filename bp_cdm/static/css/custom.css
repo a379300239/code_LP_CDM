@@ -17,3 +17,7 @@
     flex-direction: column ;
     align-items: center;
 }
+
+.greyBg{
+    background-color: silver;
+}

@@ -1,4 +1,5 @@
 from math import fabs
+import re
 import numpy as np
 import time as t
 import json
@@ -6,8 +7,9 @@ import json
 from zmq import FD
 
 
-global maxNum 
+global maxNum,artX
 maxNum = 9999999999
+artX = []
 
 
 def formatData(data):
@@ -56,7 +58,9 @@ def formatData(data):
     return data_f
 
 
-# 标准化
+'''
+标准化
+'''
 def standard(data):
 
     # 检查是哪一类
@@ -221,7 +225,7 @@ def handlesymbolMatrix(data):
     return data
 
 # index为第几个式子 sc 加变量或者减变量 cj 价格系数
-def addX(data,index,sc=1,cj=0):
+def addX(data,index,sc=1,cj=0,isArtX=False):
     data['xRange'] = np.append(data['xRange'],np.array([0,maxNum]).reshape(1,2),axis=0)
 
     c = np.zeros(data['A'][:,0].size)
@@ -231,6 +235,10 @@ def addX(data,index,sc=1,cj=0):
     data['C'] = np.append(data['C'],cj)
 
     data['symbolMatrix'][index] = '='
+
+    if isArtX:
+        global artX
+        artX.append((len(data['C'])-1))
 
     return data
 
@@ -252,9 +260,9 @@ def delNzero(data):
     return data
         
 
-# 闲心规划问题求解
-
-
+'''
+线性规划问题求解
+'''
 def getAns(data):
     ans = []
     baseX = []
@@ -263,13 +271,14 @@ def getAns(data):
         # 确定基变量,是否是第一次
         if baseX == []:
             pd = haveUnitArray(data)
-            # 存在基解，复制给baseX
+            # 存在基解，赋值给baseX
             if  pd[0] == True:
                 baseX = pd[1]
             # 不存在基解，使用大M法构建
             else:
                 for i in pd[1]:
-                    data = addX(data,i,1,maxNum)
+                    data = addX(data,i,1,maxNum,True)
+                    print(artX)
                 continue
 
         
@@ -298,30 +307,6 @@ def getAns(data):
             # 换出换入变量，并单位化
             baseX[baseX.index(inAndoutX[1])] = inAndoutX[0] 
             data = vectorUnit(data,inAndoutX[2],inAndoutX[0])
-
-    return ans
-
-# 解
-def getSolution(data,n):
-    xList = {}
-    sol = []
-    for (index,i) in enumerate(data[0]):    
-        xList[eval(i[0].replace('x',''))]=data[1][index][0]
-
-    for i in range(1,n+1):
-        if i in xList.keys():
-            sol.append(xList[i])
-        else:
-            sol.append(0)
-
-    return sol
-
-# 值
-def getFinalValue(solution,c):
-    solution = np.array(solution)
-    c = np.array(c)
-
-    ans = np.dot(solution,c.T)
 
     return ans
 
@@ -355,22 +340,42 @@ def getSimplexTable(data,baseX):
     st = fillSt(st,jblList,2,0)
 
     # 填入检验数σ
-    jysList = []
-    for (index,i) in enumerate(data['C']):
-        c = i- np.dot(Cb.T,data['A'][:,index])
-        jysList.append(c)
+    jysList = get_jysList(data,Cb)
     
     jysList = [i.tolist()[0] for i in jysList]
     st = fillSt(st,[jysList],data['A'][:,0].size+2,3)
 
     # 判断换入变量，并填入θ
     jysList = np.array(jysList)
+
+    # 判断解的形式
+    jysList_notji = []
+    for i in range(len(jysList)):
+        if i not in baseX:
+            jysList_notji.append(i)
+
+    jysList_notji_index = dict(zip(jysList[jysList_notji],jysList_notji))
+            
+    jysList_notji = np.array(jysList[jysList_notji])
+    
+
+    if judgeAns(jysList_notji,jysList_notji_index,data) == '1':
+        print('唯一解')
+    if judgeAns(jysList_notji,jysList_notji_index,data) == '2':
+        print('无穷多最优解')
+    if judgeAns(jysList_notji,jysList_notji_index,data) == '3':
+        print('无界解')
+
+    # 是否有负分量
     if np.sum(jysList < 0) >0:
         inIndex = np.argmin(jysList)
+    # 没有负分量，结束
     else:
-        # 没有负分量，结束
         inIndex = -maxNum
+        
         return {'st':st,'inAndoutX':[inIndex,'-','-'],'solution':[Xb,b]}
+
+        
 # ----------------------------------------------------------
     np.seterr(divide='ignore', invalid='ignore')  # 消除被除数为0的警告
     sitaI = b.T/data['A'][:,inIndex]
@@ -391,8 +396,61 @@ def getSimplexTable(data,baseX):
 
     return {'st':st,'inAndoutX':[inIndex,outIndex,outInTable],'solution':[Xb,b]}
 
+# 判断解的存在情况
+def judgeAns(jysList,jysList_notji_index,data):
+    # 唯一解
+    if np.sum(jysList>0) == len(jysList):
+        return '1'
 
-# 是否有单位阵，并返回数字，暂时无法解决无单位基问题，需用大M法
+    # 判断无穷多最优解
+    if np.sum(jysList>=0) == len(jysList) and 0 in jysList:
+        return '2'
+
+    # 判断无界解，存在检验数小于0，且对应系数均小于0
+    if np.sum(jysList<0) > 0:
+        for i in jysList[np.where(jysList<0)]:
+            j = jysList_notji_index[i]
+            if np.sum(data['A'][:,j]<0) == len(data['A'][:,0]):
+                return '3'
+
+# 解
+def getSolution(data,n):
+    xList = {}
+    sol = []
+    for (index,i) in enumerate(data[0]):    
+        xList[eval(i[0].replace('x',''))]=data[1][index][0]
+
+    for i in range(1,n+1):
+        if i in xList.keys():
+            sol.append(xList[i])
+        else:
+            sol.append(0)
+
+    global artX
+    for i in artX:
+        # 取到了人工变量
+        if sol[i] == 0:
+            print('无可行解')
+    return sol
+
+# 值
+def getFinalValue(solution,c):
+    solution = np.array(solution)
+    c = np.array(c)
+
+    ans = np.dot(solution,c.T)
+
+    return ans
+
+# 获得检验数
+def get_jysList(data,Cb):
+    jysList = []
+    for (index,i) in enumerate(data['C']):
+        c = i- np.dot(Cb.T,data['A'][:,index])
+        jysList.append(c)
+    return jysList
+
+# 是否有单位阵，并返回数字
 def haveUnitArray(data):
     
     xNum = data['A'][0].size    # 变量个数
@@ -448,7 +506,7 @@ def vectorUnit(data,row,col):
     return data
 
 
-# 初始化结果矩阵，全0的列表
+# 初始化结果矩阵，全为空格的列表
 def initSt(data):
     rowNum = data['A'][:,0].size+3
     colNum = data['A'][0].size+4
@@ -519,6 +577,8 @@ def getStd(data):
 
     return {'F':F,'A':A,'xRange':xRange}
 
+
+# 整体流程
 def startLp(data):
 
     fData = formatData(data)
@@ -527,6 +587,7 @@ def startLp(data):
 
     ans = getAns(stdData)
     
+    # 格式化数据
     for (index,i) in enumerate(ans):
         ans[index]['st'] = resBeauty_st(i['st'])
         ans[index]['inAndoutX'] = resBeauty_inAndoutX(i['inAndoutX'])
